@@ -47,21 +47,22 @@
 ## 5. 소프트웨어 설계 및 아키텍처 원칙 (Software Design Principles)
 
 ### 5.1. Feature-first Clean Architecture
-- 코드는 기능(Feature)별로 분리(`lib/features/`)되며, 각 기능 내에서 `data`, `domain`, `presentation` 레이어로 나뉩니다.
-- **Domain:** 비즈니스 로직, Entity, Repository 인터페이스. (프레임워크 독립적 설계)
-- **Data:** API 통신(Dio), 로컬 DB(Hive), Repository 구현체 및 DTO.
-- **Presentation:** UI(Widgets) 화면 구성 및 상태 관리(Riverpod).
+- 코드는 기능(Feature)별로 철저히 분리(`lib/features/auth/`, `lib/features/document/` 등)되며, 각 기능 내에서 `data`, `domain`, `presentation` 레이어로 나뉘어 독립적으로 동작하도록 설계되었습니다.
+- **Domain Layer:** 핵심 비즈니스 로직이 위치합니다. `User`와 같은 Entity는 `@freezed`를 이용해 모델링되며, `AuthRepository`, `DocumentRepository` 와 같은 Repository 인터페이스를 정의합니다. 외부 패키지(Flutter 등)에 의존하지 않는 프레임워크 독립적 레이어입니다.
+- **Data Layer:** API 통신(`lib/core/network/dio_provider.dart`), 로컬 DB(Hive), Repository 구현체 및 외부 데이터를 처리하는 DTO로 구성됩니다. Dio는 타임아웃 및 인터셉터 처리를 통해 네트워크 요청을 일관성 있게 관리합니다.
+- **Presentation Layer:** UI(Widgets) 화면 구성 및 Riverpod을 이용한 상태 관리, ViewModel(Notifier)이 포함됩니다.
 
 ### 5.2. UI 및 상태 관리 (Presentation Layer)
-- **Atomic Design:** `design_system` 폴더 내에 Foundations, Atoms, Molecules, Organisms 구조로 UI 컴포넌트를 설계하여 UI 재사용성과 일관성을 극대화합니다.
-- **Riverpod 상태 관리:** UI와 비즈니스 로직을 완벽히 분리하며, ViewModel(Notifier) 내부에서는 `BuildContext` 사용을 엄격히 금지합니다.
-- **GoRouter 기반 타입 세이프 라우팅:** `go_router_builder`를 사용하여 모든 화면 이동 및 파라미터 전달을 타입 안전(Type-safe)하게 처리합니다.
+- **Atomic Design:** `design_system` 폴더 내에 Foundations, Atoms, Molecules, Organisms 구조로 순수 UI 컴포넌트를 설계하여 UI 재사용성과 일관성을 극대화합니다. 각 컴포넌트는 비즈니스 로직과 분리됩니다.
+- **Riverpod 상태 관리 & 의존성 주입:** `Riverpod` (`@riverpod` 어노테이션)를 통해 상태를 관리하고 의존성을 주입합니다. ViewModel(Notifier) 내부에서는 `BuildContext` 사용을 엄격히 금지하며, 네비게이션은 `GoRouter`나 `GlobalKey`를 이용해야 합니다.
+- **GoRouter 기반 라우팅:** `go_router_builder`를 사용하여 완전한 타입 안전성(Type-safe)을 보장하는 라우팅 시스템(`lib/core/router/routes.dart`)을 사용합니다.
 
 ### 5.3. 에러 처리 및 데이터 모델링
-- **함수형 에러 핸들링:** 예외(Exception)를 throw하는 대신, `fpdart`의 `Either<Failure, T>`를 반환하여 에러 처리를 명시적으로 강제합니다.
-- **불변 데이터:** 모든 데이터 클래스(Entity, DTO, State)는 `Freezed` 패키지를 사용하여 불변(Immutable) 객체로 구성합니다. `dynamic` 타입 사용은 철저히 금지됩니다.
+- **함수형 에러 핸들링 (fpdart):** 예외(Exception)를 throw하는 전통적인 방식 대신, `fpdart`의 `Either<Failure, T>`를 반환하여 에러 처리를 명시적으로 강제합니다. (예: `Future<Either<Failure, String>> uploadDocument(File file);`)
+- **불변 데이터 모델링:** 모든 데이터 클래스(Entity, DTO, State)는 `Freezed` 패키지(`@freezed` 및 `part '.freezed.dart'`)를 사용하여 불변(Immutable) 객체로 구성합니다. 이로써 상태 변화 추적을 용이하게 합니다. `dynamic` 타입 사용은 앱 전체에서 철저히 금지됩니다.
 
 ## 6. 에이전트 및 개발자 행동 지침 (Agent/Developer Rules)
 - 본 앱의 코드를 수정하거나 기능을 추가할 때, **`README.md`와 이 `AGENTS.md` 파일에 명시된 아키텍처 및 코딩 규칙을 최우선으로 준수**해야 합니다.
 - **모든 명령어는 `fvm`을 통해 실행**합니다. (예: `fvm flutter run`, `fvm dart run build_runner build --delete-conflicting-outputs`)
 - 코드 수정 후에는 반드시 컴파일 및 빌드 러너를 실행하여 생성된 코드의 정합성을 확인하고 에러가 없음을 검증해야 합니다.
+- **Pull Request 리뷰어 지정:** 코드 변경 사항에 대한 Pull Request(PR) 생성 시, 리뷰어로 반드시 **koreanhole**을 추가해야 합니다.
